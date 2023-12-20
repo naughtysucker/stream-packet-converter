@@ -2,6 +2,11 @@
 
 #pragma once
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 enum stream_packet_converter_match_t
 {
     stream_packet_converter_match_none,
@@ -101,3 +106,7 @@ extern enum stream_packet_converter_exception_t stream_packet_converter_get_pack
 
 extern enum stream_packet_converter_exception_t stream_packet_converter_unpack(struct stream_packet_converter_t *instance, stream_packet_converter_get_stream_byte_func func_ptr, void *data);
 extern enum stream_packet_converter_exception_t stream_packet_converter_get_unpacked_data(struct stream_packet_converter_t *instance, void **data, size_t *data_size);
+
+#ifdef __cplusplus
+}
+#endif

@@ -3,6 +3,11 @@
 #include <string.h>
 #include <assert.h>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 enum stream_packet_converter_exception_t stream_packet_converter_init(struct stream_packet_converter_t *instance, void *header, size_t header_size, void *escape, size_t escape_size, void *tailer, size_t tailer_size, void *pack_buffer, size_t pack_buffer_size, void *unpack_buffer, size_t unpack_buffer_size)
 {
     instance->header = header;
@@ -144,12 +149,12 @@ enum stream_packet_converter_exception_t stream_packet_converter_pack(struct str
     size_t buffer_filled_pos = 0;
     size_t previous_pos_end = 0;
 
-    memcpy(instance->pack_buffer + buffer_filled_pos, instance->header, instance->header_size);
+    memcpy((byte_t *)instance->pack_buffer + buffer_filled_pos, instance->header, instance->header_size);
     buffer_filled_pos += instance->header_size;
 
     do
     {
-        find_result = find_pattern(instance, data + previous_pos_end, data_size - previous_pos_end, &found_pos_begin, &found_pos_end);
+        find_result = find_pattern(instance, (byte_t *)data + previous_pos_end, data_size - previous_pos_end, &found_pos_begin, &found_pos_end);
         if (find_result == find_pattern_one)
         {
             size_t copy_size = found_pos_begin;
@@ -158,7 +163,7 @@ enum stream_packet_converter_exception_t stream_packet_converter_pack(struct str
                 result = stream_packet_converter_exception_memory_run_out;
                 goto func_end;
             }
-            memcpy(instance->pack_buffer + buffer_filled_pos, data + previous_pos_end, copy_size);
+            memcpy((byte_t *)instance->pack_buffer + buffer_filled_pos, (byte_t *)data + previous_pos_end, copy_size);
             buffer_filled_pos += copy_size;
 
             if (buffer_filled_pos + instance->escape_size > instance->pack_buffer_size)
@@ -166,7 +171,7 @@ enum stream_packet_converter_exception_t stream_packet_converter_pack(struct str
                 result = stream_packet_converter_exception_memory_run_out;
                 goto func_end;
             }
-            memcpy(instance->pack_buffer + buffer_filled_pos, instance->escape, instance->escape_size);
+            memcpy((byte_t *)instance->pack_buffer + buffer_filled_pos, instance->escape, instance->escape_size);
             buffer_filled_pos += instance->escape_size;
 
             copy_size = found_pos_end - found_pos_begin;
@@ -175,7 +180,7 @@ enum stream_packet_converter_exception_t stream_packet_converter_pack(struct str
                 result = stream_packet_converter_exception_memory_run_out;
                 goto func_end;
             }
-            memcpy(instance->pack_buffer + buffer_filled_pos, data + previous_pos_end + found_pos_begin, copy_size);
+            memcpy((byte_t *)instance->pack_buffer + buffer_filled_pos, (byte_t *)data + previous_pos_end + found_pos_begin, copy_size);
             buffer_filled_pos += copy_size;
 
             previous_pos_end += found_pos_end;
@@ -188,7 +193,7 @@ enum stream_packet_converter_exception_t stream_packet_converter_pack(struct str
                 result = stream_packet_converter_exception_memory_run_out;
                 goto func_end;
             }
-            memcpy(instance->pack_buffer + buffer_filled_pos, data + previous_pos_end, copy_size);
+            memcpy((byte_t *)instance->pack_buffer + buffer_filled_pos, (byte_t *)data + previous_pos_end, copy_size);
             buffer_filled_pos += copy_size;
         }
     } while (find_result == find_pattern_one);
@@ -198,7 +203,7 @@ enum stream_packet_converter_exception_t stream_packet_converter_pack(struct str
         result = stream_packet_converter_exception_memory_run_out;
             goto func_end;
     }
-    memcpy(instance->pack_buffer + buffer_filled_pos, instance->tailer, instance->tailer_size);
+    memcpy((byte_t *)instance->pack_buffer + buffer_filled_pos, instance->tailer, instance->tailer_size);
     buffer_filled_pos += instance->tailer_size;
 
     instance->pack_data_size = buffer_filled_pos;
@@ -241,7 +246,7 @@ enum stream_packet_converter_exception_t stream_packet_converter_unpack(struct s
             instance->header_match_cursor = 0;
         }
 
-        if (instance->if_in_packet)
+        if (instance->if_in_packet == stream_packet_converter_in_packet)
         {
             if (byte == escape[instance->escape_match_cursor])
             {
@@ -273,7 +278,7 @@ enum stream_packet_converter_exception_t stream_packet_converter_unpack(struct s
         size_t max_previous_match_cursor = max(max(instance->previous_header_match_cursor, instance->previous_escape_match_cursor), instance->previous_tailer_match_cursor);
         size_t max_match_cursor = max(max(instance->header_match_cursor, instance->escape_match_cursor), instance->tailer_match_cursor);
 
-        if (instance->if_in_escape)
+        if (instance->if_in_escape == stream_packet_converter_in_escape)
         {
             instance->current_escape_content_cursor++;
             if (instance->current_escape_content_cursor == max_match_cursor)
@@ -285,7 +290,7 @@ enum stream_packet_converter_exception_t stream_packet_converter_unpack(struct s
                 instance->event_packet = stream_packet_converter_event_abort_packet;
             }
         }
-        else if (instance->if_in_packet)
+        else if (instance->if_in_packet == stream_packet_converter_in_packet)
         {
             if (max_match_cursor < 2)
             {
@@ -296,7 +301,7 @@ enum stream_packet_converter_exception_t stream_packet_converter_unpack(struct s
                         exception = stream_packet_converter_exception_memory_run_out;
                         goto func_end;
                     }
-                    memcpy(instance->unpack_buffer + instance->unpack_data_cursor, header, instance->previous_header_match_cursor);
+                    memcpy((byte_t *)instance->unpack_buffer + instance->unpack_data_cursor, header, instance->previous_header_match_cursor);
                     instance->unpack_data_cursor += instance->previous_header_match_cursor;
                 }
                 else if (instance->previous_escape_match_cursor == max_previous_match_cursor)
@@ -306,7 +311,7 @@ enum stream_packet_converter_exception_t stream_packet_converter_unpack(struct s
                         exception = stream_packet_converter_exception_memory_run_out;
                         goto func_end;
                     }
-                    memcpy(instance->unpack_buffer + instance->unpack_data_cursor, escape, instance->previous_escape_match_cursor);
+                    memcpy((byte_t *)instance->unpack_buffer + instance->unpack_data_cursor, escape, instance->previous_escape_match_cursor);
                     instance->unpack_data_cursor += instance->previous_escape_match_cursor;
                 }
                 else if (instance->previous_tailer_match_cursor == max_previous_match_cursor)
@@ -316,7 +321,7 @@ enum stream_packet_converter_exception_t stream_packet_converter_unpack(struct s
                         exception = stream_packet_converter_exception_memory_run_out;
                         goto func_end;
                     }
-                    memcpy(instance->unpack_buffer + instance->unpack_data_cursor, tailer, instance->previous_tailer_match_cursor);
+                    memcpy((byte_t *)instance->unpack_buffer + instance->unpack_data_cursor, tailer, instance->previous_tailer_match_cursor);
                     instance->unpack_data_cursor += instance->previous_tailer_match_cursor;
                 }
             }
@@ -338,11 +343,11 @@ enum stream_packet_converter_exception_t stream_packet_converter_unpack(struct s
 
         if (instance->header_match_cursor == instance->header_size)
         {
-            if (instance->if_in_escape)
+            if (instance->if_in_escape == stream_packet_converter_in_escape)
             {
                 instance->event_escape = stream_packet_converter_event_leave_escape_mode;
             }
-            else if (instance->if_in_packet)
+            else if (instance->if_in_packet == stream_packet_converter_in_packet)
             {
                 // Packet Error
                 instance->event_packet = stream_packet_converter_event_reset_packet;
@@ -354,7 +359,7 @@ enum stream_packet_converter_exception_t stream_packet_converter_unpack(struct s
         }
         else if (instance->escape_match_cursor == instance->escape_size)
         {
-            if (instance->if_in_escape)
+            if (instance->if_in_escape == stream_packet_converter_in_escape)
             {
                 instance->event_escape = stream_packet_converter_event_leave_escape_mode;
             }
@@ -365,7 +370,7 @@ enum stream_packet_converter_exception_t stream_packet_converter_unpack(struct s
         }
         else if (instance->tailer_match_cursor == instance->tailer_size)
         {
-            if (instance->if_in_escape)
+            if (instance->if_in_escape == stream_packet_converter_in_escape)
             {
                 instance->event_escape = stream_packet_converter_event_leave_escape_mode;
             }
@@ -379,8 +384,8 @@ enum stream_packet_converter_exception_t stream_packet_converter_unpack(struct s
         if (instance->event_packet == stream_packet_converter_event_enter_packet)
         {
             instance->unpack_data_cursor = 0;
-            instance->if_in_packet = 1;
-            instance->if_in_escape = 0;
+            instance->if_in_packet = stream_packet_converter_in_packet;
+            instance->if_in_escape = stream_packet_converter_not_in_escape;
 
             instance->previous_header_match_cursor = 0;
             instance->previous_escape_match_cursor = 0;
@@ -392,7 +397,7 @@ enum stream_packet_converter_exception_t stream_packet_converter_unpack(struct s
         else if (instance->event_packet == stream_packet_converter_event_leave_packet)
         {
             instance->unpack_data_size = instance->unpack_data_cursor;
-            instance->if_in_packet = 0;
+            instance->if_in_packet = stream_packet_converter_not_in_packet;
             exception = stream_packet_converter_exception_get_one_packet;
 
             instance->header_match_cursor = 0;
@@ -403,11 +408,12 @@ enum stream_packet_converter_exception_t stream_packet_converter_unpack(struct s
         }
         else if (instance->event_packet == stream_packet_converter_event_abort_packet)
         {
-            instance->if_in_escape = 0;
-            instance->if_in_packet = 0;
+            instance->if_in_escape = stream_packet_converter_not_in_escape;
+            instance->if_in_packet = stream_packet_converter_not_in_packet;
         }
         else if (instance->event_packet == stream_packet_converter_event_reset_packet)
         {
+            instance->unpack_data_cursor = 0;
             instance->previous_header_match_cursor = 0;
             instance->previous_escape_match_cursor = 0;
             instance->previous_tailer_match_cursor = 0;
@@ -417,7 +423,7 @@ enum stream_packet_converter_exception_t stream_packet_converter_unpack(struct s
         }
         else if (instance->event_escape == stream_packet_converter_event_enter_escape_mode)
         {
-            instance->if_in_escape = 1;
+            instance->if_in_escape = stream_packet_converter_in_escape;
             instance->current_escape_content_cursor = 0;
 
             instance->header_match_cursor = 0;
@@ -426,7 +432,7 @@ enum stream_packet_converter_exception_t stream_packet_converter_unpack(struct s
         }
         else if (instance->event_escape == stream_packet_converter_event_leave_escape_mode)
         {
-            instance->if_in_escape = 0;
+            instance->if_in_escape = stream_packet_converter_not_in_escape;
 
             instance->header_match_cursor = 0;
             instance->escape_match_cursor = 0;
@@ -452,3 +458,7 @@ enum stream_packet_converter_exception_t stream_packet_converter_get_unpacked_da
     *data_size = instance->unpack_data_size;
     return stream_packet_converter_exception_everything_is_ok;
 }
+
+#ifdef __cplusplus
+}
+#endif
