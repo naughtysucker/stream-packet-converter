@@ -59,7 +59,7 @@ int main(int argc, char **argv)
         "T_",
     };
 
-    std::vector<std::string> list_no_e = 
+    std::vector<std::string> list_noise = 
     {
         "__",
         "_",
@@ -68,13 +68,19 @@ int main(int argc, char **argv)
         "HH",
         "H_",
         "X",
+        "_EH",
+        "_VTH",
+        "_EY",
+        "_VTY",
+        "_EX",
+        "_VTX",
     };
 
     std::random_device rd;
     std::default_random_engine re(rd());
     std::uniform_int_distribution<int32_t> urd(0, list.size() - 1);
     std::uniform_int_distribution<int32_t> urd1(0, 256);
-    std::uniform_int_distribution<int32_t> urd2(0, list_no_e.size() - 1);
+    std::uniform_int_distribution<int32_t> urd2(0, list_noise.size() - 1);
 
     constexpr int32_t test_count = 1000000;
 
@@ -116,7 +122,7 @@ int main(int argc, char **argv)
         while (1)
         {
             int32_t r = urd2(re);
-            b += list_no_e[r];
+            b += list_noise[r];
             if (b.size() > len)
             {
                 break;
